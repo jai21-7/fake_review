@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Linewise — phone reputation API</title>
+  <meta name="description" content="Documentation and a browser sandbox for the Linewise phone reputation API: spam risk score, line type, request schema, code samples, and the free-tier limit.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,560;1,400&family=Newsreader:opsz,wght@6..72,520;6..72,650&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="#top">Linewise</a>
+    <nav aria-label="Page">
+      <a href="#sandbox">Sandbox</a>
+      <a href="#request">Request</a>
+      <a href="#schema">Schema</a>
+      <a href="#examples">Examples</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#privacy">Privacy</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <p class="eyebrow">Phone reputation API</p>
+      <h1>Score a number before you trust the call.</h1>
+      <p class="lede">Linewise returns a spam-risk score, a line type, and a short recommendation for one phone number. This GitHub Pages site is the documentation. The box below answers immediately, with no API key, because the preview runs in your browser.</p>
+    </section>
+
+    <section id="sandbox" class="panel" aria-labelledby="sandbox-heading">
+      <div class="panel-head">
+        <h2 id="sandbox-heading">Sandbox</h2>
+        <p>No key. No upload. Sample scores are fixed; other numbers are format-checked only.</p>
+      </div>
+      <form id="sandbox-form">
+        <label for="number">Phone number</label>
+        <div class="entry">
+          <input id="number" name="number" type="text" inputmode="tel" autocomplete="off" spellcheck="false" value="+1 202 555 0147" required>
+          <button class="primary" type="submit">Preview JSON</button>
+        </div>
+      </form>
+      <div id="samples" class="chips"></div>
+      <div class="result">
+        <div class="result-bar">
+          <span id="status-pill" data-kind="ok">HTTP 200</span>
+          <button id="copy-json" type="button" class="text-button">Copy JSON</button>
+        </div>
+        <p id="summary"></p>
+        <pre id="output" aria-live="polite"></pre>
+      </div>
+    </section>
+
+    <section id="request" class="docs">
+      <h2>Request</h2>
+      <p>One lookup, one number. Send the number in E.164: a plus sign, a country calling code, and the rest of the digits. The sandbox accepts spaces, dashes, and a bare 10-digit US number. The hosted API asks for the plus form.</p>
+      <div class="call">
+        <span>GET</span>
+        <code id="endpoint-url"></code>
+      </div>
+      <table>
+        <caption>Query parameters</caption>
+        <thead>
+          <tr><th>Name</th><th>Required</th><th>Type</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>number</code></td>
+            <td>yes</td>
+            <td>string</td>
+            <td>Phone number in E.164, such as <code>+12025550147</code>. Percent-encode the plus sign in a query string (<code>%2B</code>).</td>
+          </tr>
+        </tbody>
+      </table>
+      <table>
+        <caption>Headers on the hosted API</caption>
+        <thead>
+          <tr><th>Header</th><th>Required</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Authorization</code></td>
+            <td>yes, outside this page</td>
+            <td><code>Bearer</code> token. The sandbox on this page does not check a key.</td>
+          </tr>
+          <tr>
+            <td><code>Accept</code></td>
+            <td>no</td>
+            <td>Use <code>application/json</code>. Error bodies are JSON too.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="schema" class="docs">
+      <h2>Response schema</h2>
+      <p>A 200 body always has the same keys. On a sample number the reputation fields are filled. On any other number <code>reputation.risk_score</code> is <code>null</code> and <code>live_lookup</code> stays <code>false</code>.</p>
+      <table>
+        <caption>200 OK fields</caption>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>request_id</code></td><td>string</td><td>Id for this response. Quote it if you ask for help about a call.</td></tr>
+          <tr><td><code>mode</code></td><td>string</td><td><code>sandbox</code> on this page. A hosted response would use <code>live</code>.</td></tr>
+          <tr><td><code>live_lookup</code></td><td>boolean</td><td><code>false</code> here. This site never queries a subscriber database.</td></tr>
+          <tr><td><code>checked_at</code></td><td>string</td><td>When this preview was built, in UTC, ISO 8601.</td></tr>
+          <tr><td><code>number.e164</code></td><td>string</td><td>The number after formatting characters are removed.</td></tr>
+          <tr><td><code>number.country_calling_code</code></td><td>string</td><td>Digits after the plus, up to the calling code. <code>1</code> or <code>44</code>, for example.</td></tr>
+          <tr><td><code>number.region</code></td><td>string</td><td><code>NANP</code>, <code>GB</code>, or <code>UNSET</code> when this preview does not map the calling code.</td></tr>
+          <tr><td><code>reputation.risk_score</code></td><td>number or null</td><td>0 to 100 on samples. 0 is quiet, 100 is a strong spam pattern in the sample story. <code>null</code> means “no score”.</td></tr>
+          <tr><td><code>reputation.risk_level</code></td><td>string</td><td><code>low</code> (0–29), <code>medium</code> (30–59), <code>high</code> (60–100), or <code>unknown</code>.</td></tr>
+          <tr><td><code>reputation.recommendation</code></td><td>string</td><td><code>allow</code>, <code>challenge</code> (show an extra check), <code>block</code>, or <code>no_reputation_in_sandbox</code>.</td></tr>
+          <tr><td><code>reputation.labels</code></td><td>array of strings</td><td>Short reasons such as <code>toll-free</code> or <code>premium-rate</code>. Empty when nothing applied.</td></tr>
+          <tr><td><code>line.type</code></td><td>string</td><td><code>mobile</code>, <code>voip</code>, <code>toll_free</code>, <code>premium</code>, or <code>unknown</code>. Carrier identity of a private person is not a field.</td></tr>
+          <tr><td><code>line.carrier_name</code></td><td>string or null</td><td>A sample label such as “Sample Wireless”, or <code>null</code> when the number is not in the sample list.</td></tr>
+          <tr><td><code>activity.report_count_30d</code></td><td>number or null</td><td>How many spam reports the sample story includes for the last 30 days. Not a live counter.</td></tr>
+          <tr><td><code>freshness.reputation_as_of</code></td><td>string or null</td><td>When the sample score was last set. Treat a hosted record older than <code>max_age_hours</code> as stale.</td></tr>
+          <tr><td><code>freshness.max_age_hours</code></td><td>number</td><td><code>24</code>. Clients should refresh after a day rather than cache a block decision forever.</td></tr>
+          <tr><td><code>sandbox.note</code></td><td>string</td><td>Plain sentence about why the score is present or missing.</td></tr>
+        </tbody>
+      </table>
+      <h3>Errors</h3>
+      <table>
+        <caption>Error object</caption>
+        <thead>
+          <tr><th>Status</th><th><code>error.code</code></th><th>When</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>400</td><td><code>invalid_number</code></td><td>Missing number, letters, or a length outside 8–15 digits after the plus.</td></tr>
+          <tr><td>401</td><td><code>unauthorized</code></td><td>Hosted API only. The <code>Authorization</code> header is missing or the token is wrong. This page does not return 401.</td></tr>
+          <tr><td>429</td><td><code>rate_limited</code></td><td>The key used its daily quota or sent bursts faster than the per-second limit. See Pricing.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="examples" class="docs">
+      <h2>Code examples</h2>
+      <p>These calls target the documented host, <code>https://api.example.com</code>, which is a placeholder in this repository. Put the key in an environment variable named <code>LINEWISE_API_KEY</code>. The snippets follow whatever number you last previewed.</p>
+      <div class="tablist" role="tablist" aria-label="Language">
+        <button type="button" data-tab="curl" role="tab" aria-selected="true">curl</button>
+        <button type="button" data-tab="python" role="tab" aria-selected="false">Python</button>
+        <button type="button" data-tab="node" role="tab" aria-selected="false">Node.js</button>
+        <button id="copy-snippet" type="button" class="text-button">Copy curl</button>
+      </div>
+      <pre id="snippets"></pre>
+    </section>
+
+    <section id="pricing" class="docs">
+      <h2>Pricing and limits</h2>
+      <p>The free tier is for trying a real integration. This webpage’s sandbox is separate: it is not counted, because the request never leaves the browser.</p>
+      <table>
+        <caption>Plans</caption>
+        <thead>
+          <tr><th></th><th>Sandbox on this page</th><th>Free</th><th>Developer</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Price</th><td>$0</td><td>$0</td><td>$49 / month</td></tr>
+          <tr><th>Quota</th><td>Not metered</td><td>100 requests / day</td><td>50,000 requests / month</td></tr>
+          <tr><th>Burst</th><td>Not metered</td><td>2 requests / second</td><td>10 requests / second</td></tr>
+          <tr><th>Key</th><td>None</td><td>Required</td><td>Required</td></tr>
+          <tr><th>Reset</th><td>—</td><td>00:00 UTC</td><td>Billing anniversary, UTC</td></tr>
+        </tbody>
+      </table>
+      <h3>What a client should do at the limit</h3>
+      <ul>
+        <li>Stop when the response status is <strong>429</strong>.</li>
+        <li>Wait the number of seconds in the <code>Retry-After</code> header, then try once.</li>
+        <li>Read <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code>, and <code>X-RateLimit-Reset</code> (Unix time, UTC) before you fan out a batch.</li>
+        <li>Do not retry a 400. The number will not become valid by asking again.</li>
+      </ul>
+      <button id="show-429" type="button" class="primary slim">Show a 429 body in the sandbox</button>
+      <pre class="static-json">{
+  "error": {
+    "code": "rate_limited",
+    "message": "Free tier allows 100 requests per day. The limit resets at 00:00 UTC.",
+    "limit": 100,
+    "remaining": 0,
+    "retry_after_seconds": 36
+  }
+}</pre>
+    </section>
+
+    <section id="privacy" class="docs">
+      <h2>Freshness, privacy, and what this page will not do</h2>
+      <div class="split">
+        <article>
+          <h3>Freshness</h3>
+          <p>Sample scores on this page were set on the date in <code>freshness.reputation_as_of</code>. They do not move when you reload.</p>
+          <p>The contract for a hosted deployment is stricter than a demo: a reputation record should be refreshed at least every 24 hours, and <code>freshness.max_age_hours</code> tells the client when to stop trusting a cached block. Number-class facts, such as “1-900 is premium-rate”, come from the numbering plan and change rarely. Report counts are aggregates, not a recording of a call.</p>
+        </article>
+        <article>
+          <h3>Privacy</h3>
+          <p>A number typed into the sandbox stays in the page. The script does not call <code>fetch</code>. Check the network panel if you want to see that for yourself.</p>
+          <p>The response has no subscriber name, street address, contacts, or map location. Those fields are omitted because a spam-risk check does not need them. Use the score to allow, challenge, or block a call inside your own app. Do not use it to identify or harass a person.</p>
+          <p>There is no production lookup service in this repository. <code>api.example.com</code> is documentation, not a live host. Phone numbers are personal data under laws such as the GDPR when they can be tied to a person; a hosted version of this API would need its own notice, a short retention window for request logs, and a reason for processing that is limited to fraud and spam prevention.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Linewise docs. The preview logic is in <code>js/preview.js</code>.</p>
+    <p>© <span id="year"></span></p>
+  </footer>
+  <script type="module" src="js/page.js"></script>
+</body>
+</html>
